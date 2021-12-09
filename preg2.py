@@ -1,6 +1,11 @@
 
+import  random, operator, matplotlib.pyplot as plt
 
-import numpy as np, random, operator, pandas as pd, matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import math  
+from csv import reader
+from itertools import combinations
 
 
 
@@ -9,19 +14,21 @@ class Grafo:
         self.name = name
         self.x = x
         self.y = y
-    
-    def peso(self, Grafo):
-        xDis = abs(self.x - Grafo.x)
-        yDis = abs(self.y - Grafo.y)
-        peso = np.sqrt((xDis ** 2) + (yDis ** 2))
-        print('ciudad y distancia.------------------------------')
-        print(Grafo,peso)
-        return peso
+
+    def peso(self, Grafo): 
+        with open('distancias.csv', 'r') as data1:
+            csv = reader(data1)
+            pesos_csv = list(csv)            
+            #print(pesos_csv)
+        peso_n = int(pesos_csv[Grafo.name][self.name])
+        #print(peso_n)
+        return peso_n
     
     def __repr__(self):
-        return "(" + str(self.name)+ ")"
+        return  str(self.name)
 
-
+    
+    
 class Fitness:
     def __init__(self, ruta):
         self.ruta = ruta
@@ -40,8 +47,7 @@ class Fitness:
                     toGrafo = self.ruta[0]
                     Dist += fromGrafo.peso(toGrafo)
             self.peso = Dist
-        print('mis sumas')
-        print(self.peso)   
+  
         return self.peso
     
     def routa_Fitness(self):
@@ -52,42 +58,37 @@ class Fitness:
 
 
 
-#Create our initial poblacion
-#ruta generator
-#This method randomizes the order of the cities, this mean that this method creates a random individual.
+#para las combinaciones
 def crea_lista(GrafoList):
-    ruta = random.sample(GrafoList, len(GrafoList))
-    print('mis conbiaciones')
-    print(ruta)
+   
+        #crea una combinacion de ruta sin repeticion
+    ruta = random.sample(GrafoList, len(GrafoList))        
+    #print(ruta)
     return ruta
 
 
-#Create first "poblacion" (list of rutas)
-#This method created a random poblacion of the specified size.
 
 def initialpoblacion(tam_pob, GrafoList):
     poblacion = []
 
     for i in range(0, tam_pob):
         poblacion.append(crea_lista(GrafoList))
-    print('mi poblacion')
     print(poblacion)
     return poblacion
 
 
-#Create the genetic algorithm
-#Rank individuals
-#This function takes a poblacion and orders it in descending order using the fitness of each individual
+
 def rankrutas(poblacion):
     fitnessResults = {}
     for i in range(0,len(poblacion)):
         fitnessResults[i] = Fitness(poblacion[i]).routa_Fitness()
     sorted_results=sorted(fitnessResults.items(), key = operator.itemgetter(1), reverse = True)
+  
     return sorted_results
 
 
 
-#Create a selection function that will be used to make the list of parent rutas
+
 
 def selection(popRanked, eliteSize):
     selectionResults = []
@@ -107,7 +108,7 @@ def selection(popRanked, eliteSize):
 
 
 
-#Create mating pool
+
 
 def matingPool(poblacion, selectionResults):
     matingpool = []
@@ -119,7 +120,7 @@ def matingPool(poblacion, selectionResults):
 
 
 
-#Create a crossover function for two parents to create one child
+
 def breed(parent1, parent2):
     child = []
     childP1 = []
@@ -148,7 +149,7 @@ def breed(parent1, parent2):
     print(child)
     return child
 
-#Create function to run crossover over full mating pool
+
 
 def breedpoblacion(matingpool, eliteSize):
     children = []
@@ -166,7 +167,7 @@ def breedpoblacion(matingpool, eliteSize):
 
 
 
-#Create function to mutate a single ruta
+
 def mutate(individual, prob_mut):
     for swapped in range(len(individual)):
         if(random.random() < prob_mut):
@@ -181,7 +182,7 @@ def mutate(individual, prob_mut):
 
 
 
-#Create function to run mutation over entire poblacion
+
 
 def mutatepoblacion(poblacion, prob_mut):
     mutatedPop = []
@@ -193,7 +194,7 @@ def mutatepoblacion(poblacion, prob_mut):
 
 
 
-#Put all steps together to create the next generation
+
 
 def nextGeneration(currentGen, eliteSize, prob_mut):
     popRanked = rankrutas(currentGen)
@@ -205,36 +206,34 @@ def nextGeneration(currentGen, eliteSize, prob_mut):
 
 
 
-#Final step: create the genetic algorithm
 
 def Algoritmo_gen(poblacion, tam_pob, eliteSize, prob_mut, generaciones):
     pop = initialpoblacion(tam_pob, poblacion)
     progress = [1 / rankrutas(pop)[0][1]]
-    print("Distancia Inicial: " + str(progress[0]))
+    #print("Distancia Inicial: " + str(progress[0]))
     
     for i in range(1, generaciones+1):
         
         pop = nextGeneration(pop, eliteSize, prob_mut)
         progress.append(1 / rankrutas(pop)[0][1])
-        if i%50==0:
-          print('Generation '+str(i),"Distancia: ",progress[i])
+        
         
         
     bestrutaIndex = rankrutas(pop)[0][0]
     mejor_camino = pop[bestrutaIndex]
+    print("mejor ruta",mejor_camino)
     
     return mejor_camino
 
-
+"""-------------------inicio--------------------"""
 
 #se crea el grafo
 GrafoList = []
 #lleno la lista del gafo
-for i in range(1,6):
-    GrafoList.append(Grafo(name = i, x=int(random.random() * 200), y=int(random.random() * 200)))
+for i in range(0,5):
+    GrafoList.append(Grafo(name = i, x=int(random.random() * 50), y=int(random.random() * 50)))
 
-
-mejor_ruta=Algoritmo_gen(poblacion=GrafoList, tam_pob=6, eliteSize=5, prob_mut=0.01, generaciones=1)
+mejor_ruta=Algoritmo_gen(poblacion=GrafoList, tam_pob=5, eliteSize=5, prob_mut=0.01, generaciones=100)
 
 """GRAFICA----------------------"""
 x=[]
@@ -257,4 +256,5 @@ for i in range(1,len(GrafoList)+1):
             bbox=bbox_props)
 plt.tight_layout()
 plt.show()
+
 
